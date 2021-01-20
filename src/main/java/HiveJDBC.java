@@ -2,15 +2,12 @@ import com.opencsv.CSVWriter;
 import org.apache.hive.jdbc.HiveDriver;
 
 import java.io.FileWriter;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.io.IOException;
+import java.sql.*;
 import java.util.Properties;
 
 
 public class HiveJDBC {
-    private static String driverClass = "org.apache.hive.jdbc.HiveDriver";
 
     private int fetchSize = 10;
 
@@ -24,50 +21,57 @@ public class HiveJDBC {
         this.hostName = hostName;
     }
 
+    private Connection createConnection(String hostName) throws SQLException {
+        HiveDriver hiveDriver = new HiveDriver();
+        Properties properties = new Properties();
+        properties.setProperty("user", "");
+        properties.setProperty("password", "");
+
+        Connection connection = hiveDriver.connect(hostName, properties);
+        // Connection connection = DriverManager.getConnection("jdbc:hive2://192.168.21.5:10000/;hive.execution.engine=tez;tez.queue.name=alt;hive.exec.parallel=true;hive.vectorized.execution.enabled=true;hive.vectorized.execution.reduce.enabled=true;", "", "");
+        // Connection connection = DriverManager.getConnection(hostName, "", "");
+        // Connection connection = DriverManager.getConnection("jdbc:hive2://192.168.80.227:10000", "", "");
+
+        return connection;
+    }
+
+    private void writeToCsv(ResultSet rs) throws IOException, SQLException {
+        CSVWriter csvWriter = new CSVWriter(new FileWriter("output.csv"));
+        csvWriter.writeAll(rs, false, true);
+    }
+
+    private void logic(ResultSet rs) throws SQLException {
+
+        int count = 0;
+
+        while (rs.next()) {
+            count++;
+        }
+        System.out.println(count);
+    }
+
     public void run() throws InterruptedException {
 
         final Thread readerThread = new Thread("Reader") {
             public void run() {
                 try {
-                    try {
-                        Class.forName(driverClass);
-                    } catch (ClassNotFoundException exception) {
 
-                        exception.printStackTrace();
-                        System.exit(1);
-                    }
+                    final Connection connection = createConnection(hostName);
 
-                    HiveDriver hiveDriver = new HiveDriver();
-                    Properties properties = new Properties();
-                    properties.setProperty("user", "");
-                    properties.setProperty("password", "");
-
-                    Connection connection = hiveDriver.connect(hostName, properties);
-                    // Connection connection = DriverManager.getConnection("jdbc:hive2://192.168.21.5:10000/;hive.execution.engine=tez;tez.queue.name=alt;hive.exec.parallel=true;hive.vectorized.execution.enabled=true;hive.vectorized.execution.reduce.enabled=true;", "", "");
-                    // Connection connection = DriverManager.getConnection(hostName, "", "");
-                    // Connection connection = DriverManager.getConnection("jdbc:hive2://192.168.80.227:10000", "", "");
-
-                    Statement statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-                    //Statement statement = connection.createStatement();
-
+                    final Statement statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
                     statement.setFetchSize(fetchSize);
 
                     String sql = "SELECT * FROM " + tableName;
 
                     System.out.println("Running: " + sql);
-                    ResultSet result = statement.executeQuery(sql);
 
+                    ResultSet result = statement.executeQuery(sql);
                     // result.setFetchSize(100);
 
-                    CSVWriter csvWriter = new CSVWriter(new FileWriter("output.csv"));
-                    csvWriter.writeAll(result, false, true);
+                    writeToCsv(result);
 
-                    int count = 0;
+                    // logic(result);
 
-                    while (result.next()) {
-                        count++;
-                    }
-                    System.out.println(count);
                     result.close();
                     statement.close();
                     connection.close();
