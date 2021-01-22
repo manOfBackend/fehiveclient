@@ -33,6 +33,11 @@ public class Main {
         csvReader.close();
 
 
+        Thread writerThread = new Thread(Writer.getInstance());
+        writerThread.start();
+
+
+
     }
 
 }
