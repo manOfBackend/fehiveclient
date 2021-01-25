@@ -110,7 +110,7 @@ public class HiveJDBC {
         writerThread.start();
 
         readerThread.join();
-
+        writerThread.interrupt();
         long estimatedTime = System.currentTimeMillis() - startTime;
         System.out.println(estimatedTime / 1000.0);
     }
