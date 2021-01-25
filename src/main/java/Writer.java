@@ -51,6 +51,15 @@ public class Writer implements Runnable {
         return writer;
     }
 
+    private void flushAndClose(){
+        try {
+            csvWriter.flush();
+            csvWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @Override
     public void run() {
@@ -66,6 +75,8 @@ public class Writer implements Runnable {
 
             csvWriter.writeNext(line);
         }
+
+        flushAndClose();
 
     }
 }
